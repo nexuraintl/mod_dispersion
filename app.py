@@ -1,41 +1,37 @@
-import os
 import mysql.connector
 import time
 from flask import Flask, request, jsonify
+from config import MYSQL_CONFIG
 
 app = Flask(__name__)
 
-@app.route('/conexion', methods=['POST'])
+def get_db_connection():
+    return mysql.connector.connect(**MYSQL_CONFIG)
+
+@app.route('/dispersion', methods=['POST'])
 def insert_dispersion():
     try:
         data = request.get_json()
 
-        host = data.get('host')
-        user = data.get('user')
-        password = data.get('password')
-        database = data.get('database')
+        url = data.get('url')
+        funcion = data.get('funcion')
+        created_at	 = int(time.time())  # Fecha actual en segundos UNIX
 
+        if not url or not funcion:
+            return jsonify({'error': 'Faltan datos: url o funcion'}), 400
 
-        MYSQL_CONFIG = {
-        'host': os.getenv('DB_HOST', host),
-        'user': os.getenv('DB_USER', user),
-        'password': os.getenv('DB_PASSWORD', password),
-        'database': os.getenv('DB_NAME', database),
-        }
-
-
-
-        conn = mysql.connector.connect(**MYSQL_CONFIG)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        query = "SELECT * FROM `tn_sx_cliente_comu`"
-        cursor.execute(query)
+        query = "INSERT INTO tn_dispersion (url, funcion,created_at ) VALUES (%s, %s, %s)"
+        cursor.execute(query, (url, funcion, created_at	))
         conn.commit()
 
         cursor.close()
         conn.close()
 
-        return jsonify({'message': 'Registro: '.query}), 201
+        return jsonify({'message': 'Registro insertado correctamente'}), 201
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
